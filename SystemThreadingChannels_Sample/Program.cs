@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace SystemThreadingChannels_Sample
@@ -7,19 +8,61 @@ namespace SystemThreadingChannels_Sample
     {
         static async Task Main(string[] args)
         {
-            var customChannel = new CustomChannel<int>();
+            string type = "";
+            do
+            {
+                Console.Write("What kind of channel? custom/SystemThreadingChannels (c/s): ");
+                type = Console.ReadLine();
+            }
+            while (type != "c" && type != "s");
+            switch (type)
+            {
+                case "c":
+                    await CustomChannelAsync();
+                    break;
+                case "s":
+                    await SystemThreadingChannelAsync();
+                    break;
+                default:
+                    break;
+            }
+
+            
+        }
+
+        private static async Task CustomChannelAsync()
+        {
+            var channel = new CustomChannel<int>();
             _ = Task.Run(async delegate
             {
                 for (int i = 0; ; i++)
                 {
                     await Task.Delay(1000);
-                    customChannel.Write(i);
+                    channel.Write(i);
                 }
             });
 
             while (true)
             {
-                Console.WriteLine(await customChannel.ReadAsync());
+                Console.WriteLine(await channel.ReadAsync());
+            }
+        }
+
+        private static async Task SystemThreadingChannelAsync()
+        {
+            var channel = Channel.CreateUnbounded<int>();
+            _ = Task.Run(async delegate
+            {
+                for (int i = 0; ; i++)
+                {
+                    await Task.Delay(1000);
+                    await channel.Writer.WriteAsync(i);
+                }
+            });
+
+            while (true)
+            {
+                Console.WriteLine(await channel.Reader.ReadAsync());
             }
         }
     }
