@@ -11,10 +11,10 @@ namespace SystemThreadingChannels_Sample
             string type = "";
             do
             {
-                Console.Write("What kind of channel? custom/SystemThreadingChannels (c/s): ");
+                Console.Write("What kind of channel? custom/SystemThreadingChannels/SystemThreadingBoundedChannels (c/s/b): ");
                 type = Console.ReadLine();
             }
-            while (type != "c" && type != "s");
+            while (type != "c" && type != "s" && type != "b");
             switch (type)
             {
                 case "c":
@@ -23,11 +23,14 @@ namespace SystemThreadingChannels_Sample
                 case "s":
                     await SystemThreadingChannelAsync();
                     break;
+                case "b":
+                    await SystemThreadingBoundedChannelAsync();
+                    break;
                 default:
                     break;
             }
 
-            
+
         }
 
         private static async Task CustomChannelAsync()
@@ -64,6 +67,26 @@ namespace SystemThreadingChannels_Sample
             {
                 Console.WriteLine(await channel.Reader.ReadAsync());
             }
+        }
+
+        private static async Task SystemThreadingBoundedChannelAsync()
+        {
+            var channel = Channel.CreateBounded<int>(5);
+            _ = Task.Run(async delegate
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    await Task.Delay(100);
+                    await channel.Writer.WriteAsync(i);
+                }
+                channel.Writer.Complete();
+            });
+
+            await foreach (var item in channel.Reader.ReadAllAsync())
+            {
+                Console.WriteLine(item);
+            }
+            Console.WriteLine("Done!");
         }
     }
 }
